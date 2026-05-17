@@ -1,0 +1,15 @@
+# Build artifacts
+build/
+
+# Generated files
+*.json
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Editor files
+*.swp
+*.DS_Store

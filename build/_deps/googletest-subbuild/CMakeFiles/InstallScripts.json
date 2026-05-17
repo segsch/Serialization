@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/adam/courses/Features/Serialization/build/_deps/googletest-subbuild/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

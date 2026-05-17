@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/serialization_tests.dir/tests/SerializationTests.cpp.o -o serialization_tests  lib/libgtest.a lib/libgmock.a lib/libgtest_main.a lib/libgtest.a
