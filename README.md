@@ -181,7 +181,7 @@ All tests are in [SerializationTests.cpp](tests/SerializationTests.cpp) and orga
 ### Steps
 
 ```sh
-cd /Users/adam/courses/Features/Serialization
+cd Serialization
 
 # Configure
 cmake -S . -B build
