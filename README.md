@@ -54,21 +54,23 @@ CalibrationPipeline
 
 ### Core Types (`src/types.hpp`)
 ```cpp
+using FrameId = int;
+
 struct ImageFrame {
-    int frameId;
+    FrameId frameId;
     std::string scene;
     double exposure;
 };
 
 struct CalibrationResult {
-    int frameId;
+    FrameId frameId;
     double focalLength;
     double principalX;
     double principalY;
     double reprojectionError;
 };
 ```
-Both are JSON-serializable via `nlohmann/json`.
+Both are JSON-serializable via `NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE`, which generates `to_json`/`from_json` automatically.
 
 ### Interfaces (`src/interfaces.hpp`)
 ```cpp
@@ -190,15 +192,15 @@ cmake -S . -B build
 cmake --build build
 
 # Run tests
-./build/serialization_tests
+./build/bin/serialization_tests
 
 # Run demo
-./build/calibration_app
+./build/bin/calibration_app
 ```
 
 ### Dependencies
 - **nlohmann/json** (v3.11.2) — single-header JSON library, auto-downloaded
-- **gtest/gmock** (v1.14.0) — unit testing, auto-fetched
+- **gtest/gmock** (v1.15.2) — unit testing, auto-fetched
 
 ---
 
@@ -254,7 +256,7 @@ auto results = replayPipeline.processFrames(3);
 
 1. **Decorator Pattern**: Wrappers delegate to real implementations while adding behavior (recording)
 2. **Dependency Injection**: Pipeline accepts abstractions, not concrete types
-3. **Serialization**: Data types are JSON-compatible via `to_json` / `from_json`
+3. **Serialization**: Data types are JSON-compatible via `NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE`
 4. **Testability**: Mock objects allow isolated testing of wrappers
 5. **Reproducibility**: Recorded sessions enable deterministic replay for debugging
 
@@ -272,7 +274,7 @@ auto results = replayPipeline.processFrames(3);
 ## Running the Main Application
 
 ```sh
-./build/calibration_app
+./build/bin/calibration_app
 ```
 
 This demonstrates:
