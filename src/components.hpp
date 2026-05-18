@@ -19,7 +19,7 @@ public:
     }
 
 private:
-    int nextFrameId_;
+    FrameId nextFrameId_;
 };
 
 class CalibrationService : public ICalibrationSolver {

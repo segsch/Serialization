@@ -117,6 +117,7 @@ TEST_F(DirectPipelineTest, ProcessOneFrameWithoutRecording) {
     EXPECT_EQ(result.frameId, 1);
     EXPECT_GT(result.focalLength, 0.0);
     EXPECT_GE(result.reprojectionError, 0.0);
+    EXPECT_LT(result.reprojectionError, 1.0);
 }
 
 TEST_F(DirectPipelineTest, ProcessMultipleFramesWithoutRecording) {
@@ -329,5 +330,3 @@ TEST(PlaybackErrorTest, PlaybackWithoutRecordingThrowsOnCalibrate) {
     frame.frameId = 999;
     EXPECT_THROW(playback.calibrate(frame), std::runtime_error);
 }
-
-

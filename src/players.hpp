@@ -9,7 +9,7 @@ namespace calibration {
 
 struct PlaybackSession {
     std::vector<ImageFrame> captures;
-    std::unordered_map<int, CalibrationResult> calibrations;
+    std::unordered_map<FrameId, CalibrationResult> calibrations;
 };
 
 inline PlaybackSession loadPlaybackSession(const std::string& filePath) {

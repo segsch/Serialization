@@ -6,51 +6,27 @@
 namespace calibration {
 
 using json = nlohmann::json;
+using FrameId = int;
 
 struct ImageFrame {
-    int frameId = 0;
+    FrameId frameId = 0;
     std::string scene = "unknown";
     double exposure = 0.0;
 };
 
 struct CalibrationResult {
-    int frameId = 0;
+    FrameId frameId = 0;
     double focalLength = 0.0;
     double principalX = 0.0;
     double principalY = 0.0;
+    // Normalized reprojection error for the calibration result.
+    // In this demo, the value is produced by a synthetic formula and is
+    // expected to remain in the [0.0, 1.0) range.
     double reprojectionError = 0.0;
 };
 
-inline void to_json(json& j, const ImageFrame& frame) {
-    j = json{
-        {"frameId", frame.frameId},
-        {"scene", frame.scene},
-        {"exposure", frame.exposure}
-    };
-}
-
-inline void from_json(const json& j, ImageFrame& frame) {
-    j.at("frameId").get_to(frame.frameId);
-    j.at("scene").get_to(frame.scene);
-    j.at("exposure").get_to(frame.exposure);
-}
-
-inline void to_json(json& j, const CalibrationResult& result) {
-    j = json{
-        {"frameId", result.frameId},
-        {"focalLength", result.focalLength},
-        {"principalX", result.principalX},
-        {"principalY", result.principalY},
-        {"reprojectionError", result.reprojectionError}
-    };
-}
-
-inline void from_json(const json& j, CalibrationResult& result) {
-    j.at("frameId").get_to(result.frameId);
-    j.at("focalLength").get_to(result.focalLength);
-    j.at("principalX").get_to(result.principalX);
-    j.at("principalY").get_to(result.principalY);
-    j.at("reprojectionError").get_to(result.reprojectionError);
-}
+// Generates to_json / from_json for JSON serialization and deserialization.
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ImageFrame, frameId, scene, exposure)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(CalibrationResult, frameId, focalLength, principalX, principalY, reprojectionError)
 
 } // namespace calibration
