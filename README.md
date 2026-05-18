@@ -127,6 +127,147 @@ Works identically regardless of whether real, recording, or playback components 
 
 ---
 
+## Diagrams
+
+### Class Diagram
+
+```mermaid
+classDiagram
+    class IImageProvider {
+        <<interface>>
+        +captureFrame() ImageFrame
+    }
+    class ICalibrationSolver {
+        <<interface>>
+        +calibrate(ImageFrame) CalibrationResult
+    }
+    class CalibrationPipeline {
+        -IImageProvider& provider_
+        -ICalibrationSolver& solver_
+        +processOneFrame() CalibrationResult
+        +processFrames(int) vector~CalibrationResult~
+    }
+    class ImageCaptureService {
+        -FrameId nextFrameId_
+        +captureFrame() ImageFrame
+    }
+    class CalibrationService {
+        +calibrate(ImageFrame) CalibrationResult
+    }
+    class RecordingImageProvider {
+        -IImageProvider& wrapped_
+        -RecordingSession& session_
+        +captureFrame() ImageFrame
+    }
+    class RecordingCalibrationSolver {
+        -ICalibrationSolver& wrapped_
+        -RecordingSession& session_
+        +calibrate(ImageFrame) CalibrationResult
+    }
+    class RecordingSession {
+        +json journal
+        +saveToFile(string path)
+    }
+    class PlaybackImageProvider {
+        -PlaybackSession& session_
+        -size_t nextIndex_
+        +captureFrame() ImageFrame
+    }
+    class PlaybackCalibrationSolver {
+        -PlaybackSession& session_
+        +calibrate(ImageFrame) CalibrationResult
+    }
+    class PlaybackSession {
+        +vector~ImageFrame~ captures
+        +unordered_map~FrameId, CalibrationResult~ calibrations
+    }
+
+    IImageProvider <|.. ImageCaptureService
+    IImageProvider <|.. RecordingImageProvider
+    IImageProvider <|.. PlaybackImageProvider
+    ICalibrationSolver <|.. CalibrationService
+    ICalibrationSolver <|.. RecordingCalibrationSolver
+    ICalibrationSolver <|.. PlaybackCalibrationSolver
+
+    CalibrationPipeline --> IImageProvider
+    CalibrationPipeline --> ICalibrationSolver
+
+    RecordingImageProvider --> IImageProvider : delegates
+    RecordingImageProvider --> RecordingSession
+    RecordingCalibrationSolver --> ICalibrationSolver : delegates
+    RecordingCalibrationSolver --> RecordingSession
+
+    PlaybackImageProvider --> PlaybackSession
+    PlaybackCalibrationSolver --> PlaybackSession
+```
+
+---
+
+### Sequence Diagram: Recording
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Pipeline as CalibrationPipeline
+    participant RI as RecordingImageProvider
+    participant Real as ImageCaptureService
+    participant RS as RecordingCalibrationSolver
+    participant Solver as CalibrationService
+    participant Session as RecordingSession
+
+    Client->>Pipeline: processFrames(n)
+    loop n times
+        Pipeline->>RI: captureFrame()
+        RI->>Real: captureFrame()
+        Real-->>RI: ImageFrame
+        RI->>Session: journal["captures"].push_back(frame)
+        RI-->>Pipeline: ImageFrame
+
+        Pipeline->>RS: calibrate(frame)
+        RS->>Solver: calibrate(frame)
+        Solver-->>RS: CalibrationResult
+        RS->>Session: journal["calibrations"].push_back(result)
+        RS-->>Pipeline: CalibrationResult
+    end
+    Pipeline-->>Client: vector~CalibrationResult~
+
+    Client->>Session: saveToFile("recording.json")
+```
+
+---
+
+### Sequence Diagram: Playback
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Loader as loadPlaybackSession()
+    participant Session as PlaybackSession
+    participant Pipeline as CalibrationPipeline
+    participant PI as PlaybackImageProvider
+    participant PS as PlaybackCalibrationSolver
+
+    Client->>Loader: loadPlaybackSession("recording.json")
+    Loader->>Session: deserialize captures & calibrations
+    Loader-->>Client: PlaybackSession
+
+    Client->>Pipeline: processFrames(n)
+    loop n times
+        Pipeline->>PI: captureFrame()
+        PI->>Session: captures[nextIndex_++]
+        Session-->>PI: ImageFrame
+        PI-->>Pipeline: ImageFrame
+
+        Pipeline->>PS: calibrate(frame)
+        PS->>Session: calibrations[frame.frameId]
+        Session-->>PS: CalibrationResult
+        PS-->>Pipeline: CalibrationResult
+    end
+    Pipeline-->>Client: vector~CalibrationResult~
+```
+
+---
+
 ## File Structure
 
 ```

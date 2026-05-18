@@ -268,6 +268,47 @@ TEST_F(MockBasedRecordingTest, CalibrationRecordingWrapperDelegatesAndRecords) {
 }
 
 // ===========================================================================
+// SCENARIO 5: MOCK-BASED HAPPY PATH
+// ===========================================================================
+// Verifies pipeline correctness end-to-end with controlled inputs/outputs.
+// Demonstrates: Field() argument matcher, Return() with full structs,
+// and asserting every field of the returned CalibrationResult.
+class MockPipelineTest : public ::testing::Test {
+protected:
+    MockImageProvider mockProvider;
+    MockCalibrationSolver mockSolver;
+};
+
+TEST_F(MockPipelineTest, PipelinePassesCapturedFrameToSolverAndReturnsResult) {
+    ImageFrame expectedFrame;
+    expectedFrame.frameId = 5;
+    expectedFrame.scene = "test road";
+    expectedFrame.exposure = 1.75;
+
+    CalibrationResult expectedResult;
+    expectedResult.frameId = 5;
+    expectedResult.focalLength = 820.0;
+    expectedResult.principalX = 641.0;
+    expectedResult.principalY = 361.0;
+    expectedResult.reprojectionError = 0.05;
+
+    EXPECT_CALL(mockProvider, captureFrame())
+        .WillOnce(Return(expectedFrame));
+    // Field() verifies calibrate receives the frame that captureFrame returned.
+    EXPECT_CALL(mockSolver, calibrate(::testing::Field(&ImageFrame::frameId, 5)))
+        .WillOnce(Return(expectedResult));
+
+    CalibrationPipeline pipeline(mockProvider, mockSolver);
+    auto result = pipeline.processOneFrame();
+
+    EXPECT_EQ(result.frameId, expectedResult.frameId);
+    EXPECT_DOUBLE_EQ(result.focalLength, expectedResult.focalLength);
+    EXPECT_DOUBLE_EQ(result.principalX, expectedResult.principalX);
+    EXPECT_DOUBLE_EQ(result.principalY, expectedResult.principalY);
+    EXPECT_DOUBLE_EQ(result.reprojectionError, expectedResult.reprojectionError);
+}
+
+// ===========================================================================
 // INTEGRATION TESTS: End-to-End Workflows
 // ===========================================================================
 
@@ -310,6 +351,42 @@ TEST(CombinedScenarioTest, RecordThenPlayback) {
 // ===========================================================================
 // ERROR HANDLING TESTS: Playback Edge Cases
 // ===========================================================================
+
+// GMock fixture for pipeline error tests.
+// Demonstrates: Throw() action, Times(0) "never called" assertion,
+// and exact call-count verification across two collaborators.
+class MockPipelineErrorTest : public ::testing::Test {
+protected:
+    MockImageProvider mockProvider;
+    MockCalibrationSolver mockSolver;
+};
+
+TEST_F(MockPipelineErrorTest, CalibrateNeverCalledWhenCaptureThrows) {
+    // If captureFrame() throws, calibrate() must not be called at all.
+    EXPECT_CALL(mockProvider, captureFrame())
+        .WillOnce(::testing::Throw(std::runtime_error("camera failure")));
+    EXPECT_CALL(mockSolver, calibrate(_))
+        .Times(0);
+
+    CalibrationPipeline pipeline(mockProvider, mockSolver);
+    EXPECT_THROW(pipeline.processOneFrame(), std::runtime_error);
+}
+
+TEST_F(MockPipelineErrorTest, CaptureCalledOnceWhenCalibrateThrows) {
+    // If calibrate() throws, captureFrame() was already called exactly once —
+    // the pipeline does not retry or skip the capture step.
+    ImageFrame frame;
+    frame.frameId = 5;
+
+    EXPECT_CALL(mockProvider, captureFrame())
+        .Times(1)
+        .WillOnce(Return(frame));
+    EXPECT_CALL(mockSolver, calibrate(_))
+        .WillOnce(::testing::Throw(std::runtime_error("solver failure")));
+
+    CalibrationPipeline pipeline(mockProvider, mockSolver);
+    EXPECT_THROW(pipeline.processOneFrame(), std::runtime_error);
+}
 
 TEST(PlaybackErrorTest, PlaybackWithoutRecordingThrowsOnCapture) {
     // Test: Verify that PlaybackImageProvider throws when there is no
